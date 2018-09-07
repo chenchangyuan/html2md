@@ -4,7 +4,7 @@ cheerio实现html文件转化成md
 # 运行环境
 node
 # 模块依赖
-cheerio
+[cheerio](https://cnodejs.org/topic/5203a71844e76d216a727d2e),fs
 
 # 路径
 需要定义html、md文件路径
