@@ -4,8 +4,8 @@
 var fs = require('fs');
 var cheerio = require('cheerio');
 
-var htmlDir = 'D:\\software\\blog\\html',
-    mdDir = 'D:\\software\\blog\\md';
+var htmlDir = 'C:\\data\\blog\\html',
+    mdDir = 'C:\\data\\blog\\md';
 
 fs.readdir(htmlDir,function(err,files){
     if(err) {
@@ -27,13 +27,15 @@ function html2md(htmlFilePath){
          * cnblogs_post_body:网络博客html中文章内容
          * children:子元素集合
          * len：children.length
+         * code_idx:代码块索引
          * */
         var $ = cheerio.load(data),
             title = $('#cb_post_title_url').text(),
             writeData = '---\r\ntitle: '+title+'\r\n---\r\n',
             cnblogs_post_body = $('#cnblogs_post_body'),
             children = cnblogs_post_body.children(),
-            len = children.length;
+            len = children.length,
+            code_idx = 0;
         /**
          * 根据md格式
          * 标题：---\r\ntitle\r\n---\r\n
@@ -54,31 +56,25 @@ function html2md(htmlFilePath){
             if(i === 2){
                 writeData = writeData +'\r\n'+'<!--more--> \r\n';
             }
-
             if('p' === name){
                 if(e_children.type === 'text'){
-                    writeData = writeData + e.children[0].data + '\r\n';
                     if(e.children.length > 1){
-                        writeData = writeData + '('+e.children[1].attribs.href + ')\r\n';
-                    }
-                }else if(e_children.name === 'img'){
-                    writeData = writeData + '![Image]('+e.children[0].attribs.src + ')\r\n';
-                }
+                        for(var j=0,c_len=e.children.length;j<c_len;j++){
+                            if(e.children[j]['name'] === 'a') writeData = writeData + '('+e.children[j].attribs.href + ')\r\n';
+                            else if(e.children[j]['type'] === 'text') writeData = writeData + e.children[j].data + '\r\n';
+                        }
+                    }else writeData = writeData + e.children[0].data + '\r\n';
+                }else if(e_children.name === 'img') writeData = writeData + '![Image]('+e.children[0].attribs.src + ')\r\n';
             }else if('div' === name){
-                var codes = $('#cnblogs_post_body .cnblogs_code pre').text();
+                var codes = $('#cnblogs_post_body .cnblogs_code pre').eq(code_idx++).text();
+                codes = codes.replace(/^(\s*)\d+/gm, ' ');
                 writeData = writeData + '```bash\r\n' + codes + '\r\n```\r\n';
-            }else if('h1' === name){
-                writeData = writeData + '# ' + e_children.data + '\r\n';
-            }else if('h2' === name){
-                writeData = writeData + '## ' + e_children.data + '\r\n';
-            }else if('h3' === name){
-                writeData = writeData + '### ' + e_children.data + '\r\n';
-            }
+            }else if('h1' === name) writeData = writeData + '# ' + e_children.data + '\r\n';
+            else if('h2' === name) writeData = writeData + '## ' + e_children.data + '\r\n';
+            else if('h3' === name) writeData = writeData + '### ' + e_children.data + '\r\n';
         }
         fs.writeFile(mdDir+'\\'+title+'.md', writeData,(err) => {
-            if(err) {
-                console.log(err);
-            }
+            if(err) console.log(err);
         });
         console.log(title,' write done...');
     });
